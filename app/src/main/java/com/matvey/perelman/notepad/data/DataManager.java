@@ -20,8 +20,8 @@ public class DataManager {
 
     private Folder names;
 
-    private Folder file;
-    private File systemFile;
+    private Folder openedFolder;
+    private File openedFile;
 
     private SharedPreferences sharedPreferences;
     private Context context;
@@ -32,7 +32,7 @@ public class DataManager {
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
         Set<String> set = sharedPreferences.getStringSet(ARRAY_NAME, null);
         ArrayList<String> names;
-        dir = context.getExternalCacheDir();
+        dir = context.getExternalFilesDir(null);
         if (set != null) {
             names = new ArrayList<>(set);
         } else {
@@ -57,12 +57,12 @@ public class DataManager {
     }
 
     public void saveFile() {
-        if (systemFile != null)
+        if (openedFile != null)
             try {
                 Toast.makeText(context, "Saving", Toast.LENGTH_SHORT).show();
-                FileOutputStream fos = new FileOutputStream(systemFile);
+                FileOutputStream fos = new FileOutputStream(openedFile);
                 ObjectOutputStream out = new ObjectOutputStream(fos);
-                out.writeObject(file);
+                out.writeObject(openedFolder);
                 out.flush();
                 out.close();
             } catch (Exception e) {
@@ -73,14 +73,15 @@ public class DataManager {
     public void createFile(Folder folder) {
         names.add(folder);
         saveFileNames();
-        file = folder;
-        systemFile = new File(dir, folder.header);
-        saveFile();
+        openedFolder = folder;
+        openedFile = new File(dir, folder.header);
+        if(!(folder.visuals.size() == 0 && openedFile.exists()))
+            saveFile();
     }
 
     public void deleteFile(String fileName) {
         File f = new File(dir, fileName);
-        systemFile = null;
+        openedFile = null;
         if(!f.delete()){
             Toast.makeText(context, "Error deleting", Toast.LENGTH_SHORT).show();
         }
@@ -88,27 +89,27 @@ public class DataManager {
 
     public Folder loadFile(String fileName) {
         Toast.makeText(context, "Loading", Toast.LENGTH_SHORT).show();
-        systemFile = new File(dir, fileName);
+        openedFile = new File(dir, fileName);
         try {
-            FileInputStream fis = new FileInputStream(systemFile);
+            FileInputStream fis = new FileInputStream(openedFile);
             ObjectInputStream in = new ObjectInputStream(fis);
-            file = (Folder) in.readObject();
+            openedFolder = (Folder) in.readObject();
             in.close();
         } catch (Exception e) {
             Toast.makeText(context, "Error with loading " + e.toString(), Toast.LENGTH_LONG).show();
         }
-        if(file == null) {
-            file = new Folder();
-            file.header = fileName;
+        if(openedFolder == null) {
+            openedFolder = new Folder();
+            openedFolder.header = fileName;
         }
-        return file;
+        return openedFolder;
     }
 
     public Folder getFileNames() {
         return names;
     }
 
-    public Folder getFile() {
-        return file;
+    public Folder getOpenedFolder() {
+        return openedFolder;
     }
 }

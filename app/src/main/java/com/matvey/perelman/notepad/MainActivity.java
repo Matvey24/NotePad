@@ -120,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
     public void setBuffer(Visual v){
         if(buffer == null){
             MenuItem item = menu.findItem(R.id.paste_itm);
-            item.setVisible(true);
+            item.setEnabled(true);
         }
         buffer = v;
     }
@@ -174,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
             adapter.update(adapter.getFolder().parent);
             if(adapter.getFolder().parent == null){
                 dataManager.saveFile();
-                adapter.getFolder().visuals.remove(dataManager.getFile());
+                adapter.getFolder().visuals.remove(dataManager.getOpenedFolder());
             }
         }
     }

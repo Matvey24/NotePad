@@ -108,8 +108,16 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
         this.folder = folder;
         if (folder.header == null || folder.header.length() == 0)
             mainActivity.setTitle("NotePad");
-        else
-            mainActivity.setTitle(shortName(folder.header));
+        else {
+            Folder n = folder;
+            int level = 0;
+            while (n.parent != null){
+                n = n.parent;
+                ++level;
+            }
+            mainActivity.setTitle(shortName(folder.header) + "    l: " + level);
+
+        }
         notifyDataSetChanged();
     }
 
