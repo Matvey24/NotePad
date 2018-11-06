@@ -2,7 +2,6 @@
 <android.support.constraint.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -15,9 +14,9 @@
         android:layout_marginEnd="8dp"
         android:ems="10"
         android:gravity="start"
-        android:hint="Some text"
+        android:hint="@string/edit_text_hint"
         android:inputType="textMultiLine"
-        android:lines="15"
+        android:lines="10"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

@@ -1,61 +1,50 @@
 package com.matvey.perelman.notepad.data;
 
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 
 public class DataManager {
-    private static final String ARRAY_NAME = "names_array";
-    //private static final String SETTINGS_NAME = "settings";
+    private FileFilter filter;
+    private Context context;
+    private final File dir;
 
     private Folder names;
 
     private Folder openedFolder;
     private File openedFile;
 
-    private SharedPreferences sharedPreferences;
-    private Context context;
-    private final File dir;
-
-    public DataManager(Context context) {
+    public DataManager(final Context context,final String appFileType) {
         this.context = context;
-        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
-        Set<String> set = sharedPreferences.getStringSet(ARRAY_NAME, null);
-        ArrayList<String> names;
         dir = context.getExternalFilesDir(null);
-        if (set != null) {
-            names = new ArrayList<>(set);
-        } else {
-            names = new ArrayList<>();
-        }
-        this.names = new Folder();
-        for (int i = 0; i < names.size(); ++i) {
+        names = new Folder();
+        filter = new FileFilter() {
+            @Override
+            public boolean accept(File pathname) {
+                return pathname.getName()
+                        .substring(pathname.getName().lastIndexOf('.'))
+                        .equals(appFileType);
+            }
+        };
+        updateFileNames();
+    }
+
+    private void updateFileNames(){
+        File[] files = dir.listFiles(filter);
+        names.visuals.clear();
+        for (File file: files){
             Folder f = new Folder();
-            f.header = names.get(i);
-            this.names.add(f);
+            f.header = file.getName();
+            //f.content = file.length() + " bytes";
+            names.add(f);
         }
     }
-
-    public void saveFileNames() {
-        HashSet<String> strings = new HashSet<>();
-        for (int i = 0; i < names.visuals.size(); ++i) {
-            strings.add(names.visuals.get(i).header);
-        }
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putStringSet(ARRAY_NAME, strings);
-        editor.apply();
-    }
-
     public void saveFile() {
         if (openedFile != null)
             try {
@@ -68,11 +57,11 @@ public class DataManager {
             } catch (Exception e) {
                 Toast.makeText(context, "Error with saving " + e.toString(), Toast.LENGTH_LONG).show();
             }
+        updateFileNames();
     }
 
     public void createFile(Folder folder) {
-        names.add(folder);
-        saveFileNames();
+        this.names.add(folder);
         openedFolder = folder;
         openedFile = new File(dir, folder.header);
         if(!(folder.visuals.size() == 0 && openedFile.exists()))
@@ -85,6 +74,7 @@ public class DataManager {
         if(!f.delete()){
             Toast.makeText(context, "Error deleting", Toast.LENGTH_SHORT).show();
         }
+        updateFileNames();
     }
 
     public Folder loadFile(String fileName) {
@@ -104,11 +94,9 @@ public class DataManager {
         }
         return openedFolder;
     }
-
     public Folder getFileNames() {
         return names;
     }
-
     public Folder getOpenedFolder() {
         return openedFolder;
     }

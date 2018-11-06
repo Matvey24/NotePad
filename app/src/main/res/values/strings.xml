@@ -6,4 +6,7 @@
     <string name="action_cut">Cut</string>
     <string name="action_copy">Copy</string>
     <string name="action_paste">Paste</string>
+    <string name="edit_text_hint">Some name</string>
+    <string name="file_maker_switch_text">Is Folder</string>
+    <string name="file_maker_btn_text">Create</string>
 </resources>

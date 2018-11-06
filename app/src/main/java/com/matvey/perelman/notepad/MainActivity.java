@@ -44,14 +44,12 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         mode = FILE_MAKER_MODE;
 
-        dataManager = new DataManager(this);
+        dataManager = new DataManager(this, getString(R.string.app_file_type));
 
-        //RecyclerView
         RecyclerView recyclerView = findViewById(R.id.recyclerView1);
         recyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
         adapter = new MyRecyclerViewAdapter(this, dataManager.getFileNames());
         recyclerView.setAdapter(adapter);
-        //
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -165,20 +163,20 @@ public class MainActivity extends AppCompatActivity {
     public void onBackPressed() {
         switch (mode){
             case CUT_MODE:
+            case COPY_MODE:
                 mode = FILE_MAKER_MODE;
                 return;
         }
         if(adapter.getFolder().parent == null){
             super.onBackPressed();
         }else {
-            adapter.update(adapter.getFolder().parent);
-            if(adapter.getFolder().parent == null){
+            if(adapter.getFolder().parent.parent == null){
+                adapter.getFolder().parent.visuals.remove(dataManager.getOpenedFolder());
                 dataManager.saveFile();
-                adapter.getFolder().visuals.remove(dataManager.getOpenedFolder());
             }
+            adapter.update(adapter.getFolder().parent);
         }
     }
-
     public DataManager getDataManager() {
         return dataManager;
     }

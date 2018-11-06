@@ -35,7 +35,7 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
         if (folder.visuals.size() == 0) {
             myViewHolder.setFolder(false);
             myViewHolder.setHeader("Empty!");
-            myViewHolder.setContent("Empty!Empty!Empty!Empty!Empty!Empty!");
+            myViewHolder.setContent("Empty! Empty!");
             myViewHolder.itemView.setOnClickListener(null);
             return;
         }
@@ -52,7 +52,6 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
                         if (folder.parent == null) {
                             mainActivity.setBuffer(mainActivity.getDataManager().loadFile(vis.header));
                             mainActivity.getDataManager().deleteFile(vis.header);
-                            mainActivity.getDataManager().saveFileNames();
                         } else {
                             mainActivity.setBuffer(vis);
                         }
@@ -124,7 +123,7 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
     private String shortName(String name) {
         if (name == null)
             return null;
-        if (name.length() > 20) {
+        if (name.length() > 26) {
             return ".." + name.substring(name.length() - 25);
         }
         return name;
@@ -150,8 +149,13 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
                 this.content.setText(null);
                 return;
             }
-            content = content.split("\\n")[0];
-            if (content.length() > 25) {
+            String[] lines = content.split("\\n");
+            if(lines.length > 1){
+                this.content.setText(lines[0].substring(0, lines[0].length() > 26? 25 : lines[0].length()));
+                this.content.append("..");
+                return;
+            }
+            if (content.length() > 26) {
                 this.content.setText(content.substring(0, 25));
                 this.content.append("..");
                 return;
