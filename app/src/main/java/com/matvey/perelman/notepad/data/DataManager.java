@@ -38,6 +38,8 @@ public class DataManager {
     private void updateFileNames(){
         File[] files = dir.listFiles(filter);
         names.visuals.clear();
+        if(files == null)
+            return;
         for (File file: files){
             Folder f = new Folder();
             f.header = file.getName();
