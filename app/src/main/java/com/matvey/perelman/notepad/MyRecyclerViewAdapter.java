@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.matvey.perelman.notepad.data.Folder;
 import com.matvey.perelman.notepad.data.Visual;
@@ -39,7 +40,7 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
             myViewHolder.itemView.setOnClickListener(null);
             return;
         }
-        myViewHolder.setFolder(folder.visuals.get(i).folder);
+        myViewHolder.setFolder(folder.visuals.get(i) instanceof Folder);
         myViewHolder.setHeader(folder.visuals.get(i).header);
         myViewHolder.setContent(folder.visuals.get(i).content);
         final int j = i;
@@ -49,7 +50,8 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
                 switch (mainActivity.mode) {
                     case MainActivity.CUT_MODE:
                         Visual vis = folder.visuals.remove(j);
-                        if (folder.parent == null) {
+                        if (folder.parent == null){
+                            Toast.makeText(mainActivity, "Loading", Toast.LENGTH_SHORT).show();
                             mainActivity.setBuffer(mainActivity.getDataManager().loadFile(vis.header));
                             mainActivity.getDataManager().deleteFile(vis.header);
                         } else {
@@ -60,24 +62,26 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
                         break;
                     case MainActivity.COPY_MODE:
                         vis = folder.visuals.get(j);
-                        if (folder.parent == null)
+                        if (folder.parent == null) {
+                            Toast.makeText(mainActivity, "Loading", Toast.LENGTH_SHORT).show();
                             mainActivity.setBuffer(mainActivity.getDataManager().loadFile(vis.header));
-                        else
+                        }else
                             mainActivity.setBuffer(vis);
                         mainActivity.mode = MainActivity.FILE_MAKER_MODE;
                         break;
                     case MainActivity.FILE_MAKER_MODE:
                         if (folder.parent == null) {
+                            Toast.makeText(mainActivity, "Loading", Toast.LENGTH_SHORT).show();
                             Folder f = mainActivity.getDataManager().loadFile(folder.visuals.get(j).header);
                             folder.add(f);
                             update(f);
                         } else {
-                            if (folder.visuals.get(j).folder) {
+                            if (folder.visuals.get(j) instanceof Folder) {
                                 update((Folder) folder.visuals.get(j));
                             } else {
                                 final Dialog dialog = new Dialog(mainActivity);
-                                dialog.setTitle(myViewHolder.header.getText().toString());
                                 dialog.setContentView(R.layout.note_editer_view);
+                                dialog.setTitle(myViewHolder.header.getText().toString());
                                 final EditText et = dialog.findViewById(R.id.content1);
                                 et.setText(folder.visuals.get(j).content);
                                 FloatingActionButton btn = dialog.findViewById(R.id.save_btn);
@@ -129,7 +133,7 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
         return name;
     }
 
-    public class MyViewHolder extends RecyclerView.ViewHolder {
+    class MyViewHolder extends RecyclerView.ViewHolder {
         private TextView header;
         private TextView content;
         boolean isFolder;
@@ -140,11 +144,11 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
             content = itemView.findViewById(R.id.content);
         }
 
-        public void setHeader(String header) {
+        void setHeader(String header) {
             this.header.setText(header);
         }
 
-        public void setContent(String content) {
+        void setContent(String content) {
             if (content == null) {
                 this.content.setText(null);
                 return;
@@ -163,7 +167,7 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
             this.content.setText(content);
         }
 
-        public void setFolder(boolean isFolder) {
+        void setFolder(boolean isFolder) {
             this.isFolder = isFolder;
             ImageView imageView = itemView.findViewById(R.id.imageView);
             if (isFolder) {

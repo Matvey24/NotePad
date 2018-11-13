@@ -17,6 +17,7 @@
         android:hint="@string/edit_text_hint"
         android:inputType="textMultiLine"
         android:lines="10"
+        android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

@@ -13,11 +13,11 @@ import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.matvey.perelman.notepad.data.DataManager;
 import com.matvey.perelman.notepad.data.Folder;
-import com.matvey.perelman.notepad.data.Note;
 import com.matvey.perelman.notepad.data.Visual;
 
 public class MainActivity extends AppCompatActivity {
@@ -60,11 +60,10 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if(mode == FILE_MAKER_MODE){
                     final Dialog dialog = new Dialog(MainActivity.this);
-                    dialog.setTitle("Make file");
                     dialog.setContentView(R.layout.file_maker_view);
                     final EditText et = dialog.findViewById(R.id.name_et);
                     Button btn = dialog.findViewById(R.id.create_btn);
-
+                    dialog.setTitle(R.string.file_maker_dialog);
                     if(adapter.getFolder().parent == null){
                         Switch sw = dialog.findViewById(R.id.is_folder);
                         sw.setEnabled(false);
@@ -87,9 +86,10 @@ public class MainActivity extends AppCompatActivity {
                                 Switch sw = dialog.findViewById(R.id.is_folder);
                                 if (sw.isChecked())
                                     visual = new Folder();
-                                else
-                                    visual = new Note();
-                                visual.header = s;
+                                else {
+                                    visual = new Visual();
+                                    visual.content = "";
+                                }visual.header = s;
                                 adapter.getFolder().add(visual);
                             }
                             adapter.update(adapter.getFolder());
@@ -105,10 +105,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if(adapter.getFolder().parent != null)
+        if (adapter.getFolder().parent != null) {
+            Toast.makeText(this, "Saving", Toast.LENGTH_SHORT).show();
             dataManager.saveFile();
+        }
     }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
@@ -135,14 +136,13 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case R.id.paste_itm:
                 if(adapter.getFolder().parent == null){
-                    if(buffer instanceof Note){
-                        Toast.makeText(MainActivity.this, "Note can't be file", Toast.LENGTH_SHORT).show();
+                    if(!(buffer instanceof Folder)){
+                        Toast.makeText(MainActivity.this, "Text can't be file", Toast.LENGTH_SHORT).show();
                         break;
                     }
                     Folder f = (Folder) buffer.getCopy();
                     if(buffer.parent.parent != null)
                         f.header += getString(R.string.app_file_type);
-
                     dataManager.createFile(f);
                     adapter.update(adapter.getFolder());
                 }else {
@@ -172,6 +172,7 @@ public class MainActivity extends AppCompatActivity {
         }else {
             if(adapter.getFolder().parent.parent == null){
                 adapter.getFolder().parent.visuals.remove(dataManager.getOpenedFolder());
+                Toast.makeText(this, "Saving", Toast.LENGTH_SHORT).show();
                 dataManager.saveFile();
             }
             adapter.update(adapter.getFolder().parent);

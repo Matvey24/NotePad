@@ -3,23 +3,21 @@ package com.matvey.perelman.notepad.data;
 import android.content.Context;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
+
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-
 public class DataManager {
     private FileFilter filter;
+    private Gson gson;
     private Context context;
     private final File dir;
 
     private Folder names;
-
     private Folder openedFolder;
     private File openedFile;
-
     public DataManager(final Context context,final String appFileType) {
         this.context = context;
         dir = context.getExternalFilesDir(null);
@@ -32,9 +30,9 @@ public class DataManager {
                         .equals(appFileType);
             }
         };
+        gson = new Gson();
         updateFileNames();
     }
-
     private void updateFileNames(){
         File[] files = dir.listFiles(filter);
         names.visuals.clear();
@@ -43,19 +41,17 @@ public class DataManager {
         for (File file: files){
             Folder f = new Folder();
             f.header = file.getName();
-            //f.content = file.length() + " bytes";
+            f.content = file.length() + " bytes";
             names.add(f);
         }
     }
     public void saveFile() {
         if (openedFile != null)
             try {
-                Toast.makeText(context, "Saving", Toast.LENGTH_SHORT).show();
                 FileOutputStream fos = new FileOutputStream(openedFile);
-                ObjectOutputStream out = new ObjectOutputStream(fos);
-                out.writeObject(openedFolder);
-                out.flush();
-                out.close();
+                String json = gson.toJson(openedFolder.toItem());
+                fos.write(json.getBytes());
+                fos.close();
             } catch (Exception e) {
                 Toast.makeText(context, "Error with saving " + e.toString(), Toast.LENGTH_LONG).show();
             }
@@ -63,11 +59,12 @@ public class DataManager {
     }
 
     public void createFile(Folder folder) {
-        this.names.add(folder);
         openedFolder = folder;
         openedFile = new File(dir, folder.header);
-        if(!(folder.visuals.size() == 0 && openedFile.exists()))
+        if(!(folder.visuals.size() == 0 && openedFile.exists())) {
             saveFile();
+        }
+        updateFileNames();
     }
 
     public void deleteFile(String fileName) {
@@ -80,13 +77,16 @@ public class DataManager {
     }
 
     public Folder loadFile(String fileName) {
-        Toast.makeText(context, "Loading", Toast.LENGTH_SHORT).show();
         openedFile = new File(dir, fileName);
         try {
             FileInputStream fis = new FileInputStream(openedFile);
-            ObjectInputStream in = new ObjectInputStream(fis);
-            openedFolder = (Folder) in.readObject();
-            in.close();
+            byte[] bytes = new byte[(int)openedFile.length()];
+            if(fis.read(bytes) != bytes.length){
+                throw new Exception("too long file");
+            }
+            String json = new String(bytes);
+            openedFolder = Folder.fromItem(gson.fromJson(json, Item.class));
+            fis.close();
         } catch (Exception e) {
             Toast.makeText(context, "Error with loading " + e.toString(), Toast.LENGTH_LONG).show();
         }

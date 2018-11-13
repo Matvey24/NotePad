@@ -6,12 +6,11 @@ public class Visual implements Serializable {
     public String header;
     public String content;
     public Folder parent;
-    public boolean folder;
 
     public Visual getCopy(){
         Visual v;
-        if(!folder){
-            v = new Note();
+        if(!(this instanceof Folder)){
+            v = new Visual();
             v.header = header;
             v.content = content;
         }else {

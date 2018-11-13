@@ -8,18 +8,18 @@
     <EditText
         android:id="@+id/name_et"
         android:layout_width="300dp"
-        android:layout_height="37dp"
+        android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:ems="10"
         android:hint="@string/edit_text_hint"
         android:inputType="textPersonName"
-        android:maxLength="40"
-        android:textSize="14sp"
+        android:maxLength="30"
+        android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Switch
         android:id="@+id/is_folder"
@@ -43,4 +43,5 @@
         app:layout_constraintEnd_toEndOf="@+id/name_et"
         app:layout_constraintStart_toStartOf="@+id/name_et"
         app:layout_constraintTop_toBottomOf="@+id/is_folder" />
+
 </android.support.constraint.ConstraintLayout>
