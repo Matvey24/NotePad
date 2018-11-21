@@ -1,13 +1,10 @@
 package com.matvey.perelman.notepad;
 
-import android.app.Dialog;
 import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -15,13 +12,19 @@ import android.widget.Toast;
 import com.matvey.perelman.notepad.data.Folder;
 import com.matvey.perelman.notepad.data.Visual;
 
-public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAdapter.MyViewHolder> {
-    private Folder folder;
-    private MainActivity mainActivity;
+import java.util.ArrayList;
 
-    MyRecyclerViewAdapter(MainActivity mainActivity, Folder folder) {
-        this.folder = folder;
-        this.mainActivity = mainActivity;
+import static com.matvey.perelman.notepad.Model.COPY_MODE;
+import static com.matvey.perelman.notepad.Model.CUT_MODE;
+import static com.matvey.perelman.notepad.Model.FILE_MAKER_MODE;
+
+public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAdapter.MyViewHolder> {
+    private Model model;
+    private ArrayList<Visual> selectedData;
+
+    MyRecyclerViewAdapter(Model model) {
+        this.model = model;
+        selectedData = new ArrayList<>();
     }
 
     @NonNull
@@ -32,68 +35,61 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
     }
 
     @Override
-    public void onBindViewHolder(@NonNull final MyViewHolder myViewHolder, int i) {
-        if (folder.visuals.size() == 0) {
+    public void onBindViewHolder(@NonNull final MyViewHolder myViewHolder,int j) {
+        if (model.getVisibleFolder().visuals.size() == 0) {
             myViewHolder.setFolder(false);
             myViewHolder.setHeader("Empty!");
             myViewHolder.setContent("Empty! Empty!");
             myViewHolder.itemView.setOnClickListener(null);
             return;
         }
-        myViewHolder.setFolder(folder.visuals.get(i) instanceof Folder);
-        myViewHolder.setHeader(folder.visuals.get(i).header);
-        myViewHolder.setContent(folder.visuals.get(i).content);
-        final int j = i;
+        final int i = j;
+        myViewHolder.setFolder(model.isVisualFolder(model.getVisibleElement(i)));
+        myViewHolder.setHeader(model.getVisibleElement(i).header);
+        myViewHolder.setContent(model.getVisibleElement(i).content);
         myViewHolder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                switch (mainActivity.mode) {
-                    case MainActivity.CUT_MODE:
-                        Visual vis = folder.visuals.remove(j);
-                        if (folder.parent == null){
-                            Toast.makeText(mainActivity, "Loading", Toast.LENGTH_SHORT).show();
-                            mainActivity.setBuffer(mainActivity.getDataManager().loadFile(vis.header));
-                            mainActivity.getDataManager().deleteFile(vis.header);
+                switch (model.mode) {
+                    case CUT_MODE:
+                        selectedData.clear();
+                        Visual vis = model.getVisibleFolder().visuals.remove(i);
+                        if (model.isVisibleFolderRoot()) {
+                            Toast.makeText(model.getActivity(), "Loading", Toast.LENGTH_SHORT).show();
+                            selectedData.add(model.getDataManager().loadFile(vis.header));
+                            model.getDataManager().deleteFile(vis.header);
                         } else {
-                            mainActivity.setBuffer(vis);
+                            selectedData.add(vis);
                         }
-                        mainActivity.mode = MainActivity.FILE_MAKER_MODE;
-                        update(folder);
+                        model.setBuffer(selectedData);
+                        model.mode = FILE_MAKER_MODE;
+                        update(model.getVisibleFolder());
                         break;
-                    case MainActivity.COPY_MODE:
-                        vis = folder.visuals.get(j);
-                        if (folder.parent == null) {
-                            Toast.makeText(mainActivity, "Loading", Toast.LENGTH_SHORT).show();
-                            mainActivity.setBuffer(mainActivity.getDataManager().loadFile(vis.header));
-                        }else
-                            mainActivity.setBuffer(vis);
-                        mainActivity.mode = MainActivity.FILE_MAKER_MODE;
+                    case COPY_MODE:
+                        selectedData.clear();
+                        vis = model.getVisibleElement(i);
+                        if (model.isVisibleFolderRoot()) {
+                            Toast.makeText(model.getActivity(), "Loading", Toast.LENGTH_SHORT).show();
+                            selectedData.add(model.getDataManager().loadFile(vis.header));
+                        } else {
+                            selectedData.add(vis);
+                        }
+                        model.setBuffer(selectedData);
+                        model.mode = FILE_MAKER_MODE;
                         break;
-                    case MainActivity.FILE_MAKER_MODE:
-                        if (folder.parent == null) {
-                            Toast.makeText(mainActivity, "Loading", Toast.LENGTH_SHORT).show();
-                            Folder f = mainActivity.getDataManager().loadFile(folder.visuals.get(j).header);
-                            folder.add(f);
+                    case FILE_MAKER_MODE:
+                        if (model.isVisibleFolderRoot()) {
+                            Toast.makeText(model.getActivity(), "Loading", Toast.LENGTH_SHORT).show();
+                            Folder f = model.getDataManager().loadFile(model.getVisibleElement(i).header);
+                            model.setVisibleFile(f);
+                            f.content = model.getRootFolder().visuals.remove(i).content;
+                            model.getRootFolder().add(f);
                             update(f);
                         } else {
-                            if (folder.visuals.get(j) instanceof Folder) {
-                                update((Folder) folder.visuals.get(j));
+                            if (model.isVisualFolder(model.getVisibleElement(i))) {
+                                update((Folder) model.getVisibleElement(i));
                             } else {
-                                final Dialog dialog = new Dialog(mainActivity);
-                                dialog.setContentView(R.layout.note_editer_view);
-                                dialog.setTitle(myViewHolder.header.getText().toString());
-                                final EditText et = dialog.findViewById(R.id.content1);
-                                et.setText(folder.visuals.get(j).content);
-                                FloatingActionButton btn = dialog.findViewById(R.id.save_btn);
-                                btn.setOnClickListener(new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View v) {
-                                        folder.visuals.get(j).content = et.getText().toString();
-                                        myViewHolder.setContent(et.getText().toString());
-                                        dialog.hide();
-                                    }
-                                });
-                                dialog.show();
+                                model.getActivity().showEditerDialog(myViewHolder,model.getVisibleElement(i));
                             }
                         }
                         break;
@@ -104,22 +100,15 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
 
     @Override
     public int getItemCount() {
-        return folder.visuals.size() < 1 ? 1 : folder.visuals.size();
+        return model.getVisibleFolder().visuals.size() < 1 ? 1 : model.getVisibleFolder().visuals.size();
     }
 
     void update(Folder folder) {
-        this.folder = folder;
-        if (folder.header == null || folder.header.length() == 0)
-            mainActivity.setTitle("NotePad");
+        model.setVisibleFolder(folder);
+        if (model.isVisibleFolderRoot())
+            model.getActivity().setTitle(R.string.app_name);
         else {
-            Folder n = folder;
-            int level = 0;
-            while (n.parent != null){
-                n = n.parent;
-                ++level;
-            }
-            mainActivity.setTitle(shortName(folder.header) + "    l: " + level);
-
+            model.getActivity().setTitle(shortName(folder.header) + "    l: " + model.getFolderLevel(folder));
         }
         notifyDataSetChanged();
     }
@@ -154,8 +143,8 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
                 return;
             }
             String[] lines = content.split("\\n");
-            if(lines.length > 1){
-                this.content.setText(lines[0].substring(0, lines[0].length() > 26? 25 : lines[0].length()));
+            if (lines.length > 1) {
+                this.content.setText(lines[0].substring(0, lines[0].length() > 26 ? 25 : lines[0].length()));
                 this.content.append("..");
                 return;
             }
@@ -166,8 +155,10 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
             }
             this.content.setText(content);
         }
-
-        void setFolder(boolean isFolder) {
+        String getHeader(){
+            return header.getText().toString();
+        }
+        private void setFolder(boolean isFolder) {
             this.isFolder = isFolder;
             ImageView imageView = itemView.findViewById(R.id.imageView);
             if (isFolder) {
@@ -176,9 +167,5 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
                 imageView.setImageResource(R.drawable.file);
             }
         }
-    }
-
-    public Folder getFolder() {
-        return folder;
     }
 }

@@ -1,9 +1,9 @@
 package com.matvey.perelman.notepad.data;
 
-import android.content.Context;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
+import com.matvey.perelman.notepad.Model;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -12,16 +12,12 @@ import java.io.FileOutputStream;
 public class DataManager {
     private FileFilter filter;
     private Gson gson;
-    private Context context;
     private final File dir;
-
-    private Folder names;
-    private Folder openedFolder;
+    private Model model;
     private File openedFile;
-    public DataManager(final Context context,final String appFileType) {
-        this.context = context;
-        dir = context.getExternalFilesDir(null);
-        names = new Folder();
+    public DataManager(Model model, final String appFileType) {
+        this.model = model;
+        dir = model.getActivity().getExternalFilesDir(null);
         filter = new FileFilter() {
             @Override
             public boolean accept(File pathname) {
@@ -33,35 +29,34 @@ public class DataManager {
         gson = new Gson();
         updateFileNames();
     }
-    private void updateFileNames(){
+    public void updateFileNames(){
         File[] files = dir.listFiles(filter);
-        names.visuals.clear();
+        model.getRootFolder().visuals.clear();
         if(files == null)
             return;
         for (File file: files){
             Folder f = new Folder();
             f.header = file.getName();
             f.content = file.length() + " bytes";
-            names.add(f);
+            model.getRootFolder().add(f);
         }
     }
     public void saveFile() {
-        if (openedFile != null)
+        if (openedFile != null && model.getVisibleFile() != null)
             try {
                 FileOutputStream fos = new FileOutputStream(openedFile);
-                String json = gson.toJson(openedFolder.toItem());
+                String json = gson.toJson(model.getVisibleFile().toItem());
                 fos.write(json.getBytes());
                 fos.close();
             } catch (Exception e) {
-                Toast.makeText(context, "Error with saving " + e.toString(), Toast.LENGTH_LONG).show();
+                Toast.makeText(model.getActivity(), "Error with saving " + e.toString(), Toast.LENGTH_LONG).show();
             }
-        updateFileNames();
     }
 
     public void createFile(Folder folder) {
-        openedFolder = folder;
         openedFile = new File(dir, folder.header);
         if(!(folder.visuals.size() == 0 && openedFile.exists())) {
+            model.setVisibleFile(folder);
             saveFile();
         }
         updateFileNames();
@@ -71,13 +66,14 @@ public class DataManager {
         File f = new File(dir, fileName);
         openedFile = null;
         if(!f.delete()){
-            Toast.makeText(context, "Error deleting", Toast.LENGTH_SHORT).show();
+            Toast.makeText(model.getActivity(), "Error deleting", Toast.LENGTH_SHORT).show();
         }
         updateFileNames();
     }
 
     public Folder loadFile(String fileName) {
         openedFile = new File(dir, fileName);
+        Folder f = null;
         try {
             FileInputStream fis = new FileInputStream(openedFile);
             byte[] bytes = new byte[(int)openedFile.length()];
@@ -85,21 +81,15 @@ public class DataManager {
                 throw new Exception("too long file");
             }
             String json = new String(bytes);
-            openedFolder = Folder.fromItem(gson.fromJson(json, Item.class));
+            f = Folder.fromItem(gson.fromJson(json, Item.class));
             fis.close();
         } catch (Exception e) {
-            Toast.makeText(context, "Error with loading " + e.toString(), Toast.LENGTH_LONG).show();
+            Toast.makeText(model.getActivity(), "Error with loading " + e.toString(), Toast.LENGTH_LONG).show();
         }
-        if(openedFolder == null) {
-            openedFolder = new Folder();
-            openedFolder.header = fileName;
+        if(f == null) {
+            f = new Folder();
+            f.header = fileName;
         }
-        return openedFolder;
-    }
-    public Folder getFileNames() {
-        return names;
-    }
-    public Folder getOpenedFolder() {
-        return openedFolder;
+        return f;
     }
 }

@@ -46,4 +46,13 @@ public class Folder extends Visual{
         }
         return f;
     }
+    @Override
+    public Folder getCopy(){
+        Folder f = new Folder();
+        f.header = header;
+        for(Visual vis: visuals){
+            f.add(vis.getCopy());
+        }
+        return f;
+    }
 }

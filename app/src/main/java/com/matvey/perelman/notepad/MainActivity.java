@@ -13,27 +13,21 @@ import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Switch;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.matvey.perelman.notepad.data.DataManager;
 import com.matvey.perelman.notepad.data.Folder;
 import com.matvey.perelman.notepad.data.Visual;
 
+import static com.matvey.perelman.notepad.Model.COPY_MODE;
+import static com.matvey.perelman.notepad.Model.CUT_MODE;
+import static com.matvey.perelman.notepad.Model.FILE_MAKER_MODE;
+
 public class MainActivity extends AppCompatActivity {
     private MyRecyclerViewAdapter adapter;
 
     private DataManager dataManager;
-
-    public static final int FILE_MAKER_MODE = 0;
-    public static final int CUT_MODE = 1;
-    public static final int COPY_MODE = 2;
-
-
-    public int mode;
-
-    private Visual buffer;
-
+    private Model model;
     private Menu menu;
 
     @Override
@@ -42,61 +36,24 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        mode = FILE_MAKER_MODE;
-
-        dataManager = new DataManager(this, getString(R.string.app_file_type));
+        model = new Model(this);
+        dataManager = new DataManager(model, getString(R.string.app_file_type));
 
         RecyclerView recyclerView = findViewById(R.id.recyclerView1);
         recyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
-        adapter = new MyRecyclerViewAdapter(this, dataManager.getFileNames());
+        adapter = new MyRecyclerViewAdapter(model);
         recyclerView.setAdapter(adapter);
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View view) {
-                if(mode == CUT_MODE || mode == COPY_MODE){
-                    mode = FILE_MAKER_MODE;
-                }
-                if(mode == FILE_MAKER_MODE){
-                    final Dialog dialog = new Dialog(MainActivity.this);
-                    dialog.setContentView(R.layout.file_maker_view);
-                    final EditText et = dialog.findViewById(R.id.name_et);
-                    Button btn = dialog.findViewById(R.id.create_btn);
-                    dialog.setTitle(R.string.file_maker_dialog);
-                    if(adapter.getFolder().parent == null){
-                        Switch sw = dialog.findViewById(R.id.is_folder);
-                        sw.setEnabled(false);
-                    }
-                    btn.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            String s = et.getText().toString();
-                            if(s.isEmpty()){
-                                et.setError("Enter the name");
-                                return;
-                            }
-                            if(adapter.getFolder().parent == null){
-                                Folder f = new Folder();
-                                s += getString(R.string.app_file_type);
-                                f.header = s;
-                                dataManager.createFile(f);
-                            }else {
-                                Visual visual;
-                                Switch sw = dialog.findViewById(R.id.is_folder);
-                                if (sw.isChecked())
-                                    visual = new Folder();
-                                else {
-                                    visual = new Visual();
-                                    visual.content = "";
-                                }visual.header = s;
-                                adapter.getFolder().add(visual);
-                            }
-                            adapter.update(adapter.getFolder());
-                            dialog.hide();
-                        }
-                    });
-                    dialog.show();
+                switch (model.mode){
+                    case CUT_MODE:
+                    case COPY_MODE:
+                        model.mode = FILE_MAKER_MODE;
+                    case FILE_MAKER_MODE:
+                        showCreaterDialog();
                 }
             }
         });
@@ -105,55 +62,34 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (adapter.getFolder().parent != null) {
+        if (!model.isVisibleFolderRoot()) {
             Toast.makeText(this, "Saving", Toast.LENGTH_SHORT).show();
             dataManager.saveFile();
         }
     }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
         this.menu = menu;
         return true;
     }
-    public void setBuffer(Visual v){
-        if(buffer == null){
-            MenuItem item = menu.findItem(R.id.paste_itm);
-            item.setEnabled(true);
-        }
-        buffer = v;
+    public void onCreateBuffer(){
+        MenuItem item = menu.findItem(R.id.paste_itm);
+        item.setEnabled(true);
     }
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        switch (id){
+        switch (id) {
             case R.id.cut_itm:
-                mode = CUT_MODE;
+                model.mode = CUT_MODE;
                 break;
             case R.id.copy_itm:
-                mode = COPY_MODE;
+                model.mode = COPY_MODE;
                 break;
             case R.id.paste_itm:
-                if(adapter.getFolder().parent == null){
-                    if(!(buffer instanceof Folder)){
-                        Toast.makeText(MainActivity.this, "Text can't be file", Toast.LENGTH_SHORT).show();
-                        break;
-                    }
-                    Folder f = (Folder) buffer.getCopy();
-                    if(buffer.parent.parent != null)
-                        f.header += getString(R.string.app_file_type);
-                    dataManager.createFile(f);
-                    adapter.update(adapter.getFolder());
-                }else {
-                    Visual v = buffer.getCopy();
-                    if(buffer.parent.parent == null){
-                        v.header = v.header.substring(0,
-                                v.header.length() - getString(R.string.app_file_type).length());
-                    }
-                    adapter.getFolder().add(v);
-                    adapter.update(adapter.getFolder());
-                }
+                paste();
                 break;
         }
         return super.onOptionsItemSelected(item);
@@ -161,22 +97,112 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        switch (mode){
+        switch (model.mode) {
             case CUT_MODE:
             case COPY_MODE:
-                mode = FILE_MAKER_MODE;
+                model.mode = FILE_MAKER_MODE;
                 return;
         }
-        if(adapter.getFolder().parent == null){
+        if (model.isVisibleFolderRoot()) {
             super.onBackPressed();
-        }else {
-            if(adapter.getFolder().parent.parent == null){
-                adapter.getFolder().parent.visuals.remove(dataManager.getOpenedFolder());
+        } else {
+            if (model.isVisibleFolderFile()) {
                 Toast.makeText(this, "Saving", Toast.LENGTH_SHORT).show();
                 dataManager.saveFile();
-            }
-            adapter.update(adapter.getFolder().parent);
+                dataManager.updateFileNames();
+                adapter.update(model.getRootFolder());
+            }else
+                adapter.update(model.getVisibleFolder().parent);
         }
+    }
+
+    private void paste() {
+        String type = getString(R.string.app_file_type);
+        if (model.isVisibleFolderRoot()) {
+            for (Visual v : model.getBuffer()) {
+                if (!model.isVisualFolder(v)) {
+                    Toast.makeText(MainActivity.this, "Text can't be file", Toast.LENGTH_SHORT).show();
+                    break;
+                }
+                Folder f = (Folder) v.getCopy();
+                if (!model.isFolderRoot(v)) {
+                    f.header = f.header.concat(type);
+                }
+                dataManager.createFile(f);
+            }
+            adapter.update(model.getRootFolder());
+        } else {
+            for (Visual vis : model.getBuffer()) {
+                Visual v = vis.getCopy();
+                if (model.isFolderFile(vis)) {
+                    v.header = v.header.substring(0, v.header.lastIndexOf('.'));
+                }
+                model.getVisibleFolder().add(v);
+            }
+            adapter.update(model.getVisibleFolder());
+        }
+    }
+
+    public void showCreaterDialog(){
+        final Dialog dialog = new Dialog(MainActivity.this);
+        dialog.setContentView(R.layout.file_maker_view);
+        final EditText et = dialog.findViewById(R.id.name_et);
+        Button btn = dialog.findViewById(R.id.create_btn);
+        dialog.setTitle(R.string.file_maker_dialog);
+        if (model.isVisibleFolderRoot()) {
+            Switch sw = dialog.findViewById(R.id.is_folder);
+            sw.setEnabled(false);
+        }
+        btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String s = et.getText().toString();
+                if (s.isEmpty()) {
+                    et.setError("Enter the name");
+                    return;
+                }
+                if (model.isVisibleFolderRoot()) {
+                    Folder f = new Folder();
+                    s += getString(R.string.app_file_type);
+                    f.header = s;
+                    dataManager.createFile(f);
+                } else {
+                    Visual visual;
+                    Switch sw = dialog.findViewById(R.id.is_folder);
+                    if (sw.isChecked())
+                        visual = new Folder();
+                    else {
+                        visual = new Visual();
+                        visual.content = "";
+                    }
+                    visual.header = s;
+                    model.getVisibleFolder().add(visual);
+                }
+                adapter.update(model.getVisibleFolder());
+                dialog.hide();
+            }
+        });
+        dialog.show();
+    }
+    public void showEditerDialog(final MyRecyclerViewAdapter.MyViewHolder holder, final Visual visual){
+        final Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.note_editer_view);
+        dialog.setTitle(holder.getHeader());
+        final EditText et = dialog.findViewById(R.id.content1);
+        et.setText(visual.content);
+        FloatingActionButton btn = dialog.findViewById(R.id.save_btn);
+        btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String text = et.getText().toString();
+                if(!visual.content.equals(text)){
+                    holder.setContent(text);
+                    visual.content = text;
+                }
+                dialog.hide();
+            }
+        });
+        dialog.show();
     }
     public DataManager getDataManager() {
         return dataManager;
