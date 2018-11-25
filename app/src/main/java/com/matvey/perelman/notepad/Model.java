@@ -1,5 +1,7 @@
 package com.matvey.perelman.notepad;
 
+import android.widget.Toast;
+
 import com.matvey.perelman.notepad.data.DataManager;
 import com.matvey.perelman.notepad.data.Folder;
 import com.matvey.perelman.notepad.data.Visual;
@@ -16,17 +18,26 @@ public class Model {
     static final int FILE_MAKER_MODE = 0;
     static final int CUT_MODE = 1;
     static final int COPY_MODE = 2;
+    private static boolean saved;
     Model(MainActivity activity){
         this.activity = activity;
         rootFolder = new Folder();
         visibleFolder = rootFolder;
         mode = FILE_MAKER_MODE;
     }
-
     ArrayList<Visual> getBuffer() {
         return buffer;
     }
-
+    void onUpdate(){
+        saved = false;
+    }
+    void save(){
+        if(!saved) {
+            Toast.makeText(activity, "Saving", Toast.LENGTH_SHORT).show();
+            getDataManager().saveFile();
+            saved = true;
+        }
+    }
     void setBuffer(ArrayList<Visual> buffer) {
         if(this.buffer == null){
             this.buffer = new ArrayList<>();
@@ -44,11 +55,8 @@ public class Model {
     boolean isVisibleFolderFile(){
         return isFolderRoot(visibleFolder.parent);
     }
-    boolean isFolderRoot(Visual v){
+    private boolean isFolderRoot(Visual v){
         return v.parent == null;
-    }
-    boolean isFolderFile(Visual v){
-        return isFolderRoot(v.parent);
     }
     public Folder getRootFolder() {
         return rootFolder;
@@ -74,13 +82,12 @@ public class Model {
     DataManager getDataManager(){
         return activity.getDataManager();
     }
-
     public Folder getVisibleFile() {
         return visibleFile;
     }
-
     public void setVisibleFile(Folder visibleFile) {
         this.visibleFile = visibleFile;
+        saved = true;
     }
 }
 

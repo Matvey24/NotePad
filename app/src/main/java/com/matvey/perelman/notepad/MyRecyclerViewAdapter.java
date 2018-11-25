@@ -41,6 +41,7 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
             myViewHolder.setHeader("Empty!");
             myViewHolder.setContent("Empty! Empty!");
             myViewHolder.itemView.setOnClickListener(null);
+            myViewHolder.itemView.setOnLongClickListener(null);
             return;
         }
         final int i = j;
@@ -51,39 +52,37 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
             @Override
             public void onClick(View v) {
                 switch (model.mode) {
+                    case COPY_MODE:
                     case CUT_MODE:
                         selectedData.clear();
-                        Visual vis = model.getVisibleFolder().visuals.remove(i);
+                        Visual vis = model.getVisibleElement(i);
                         if (model.isVisibleFolderRoot()) {
                             Toast.makeText(model.getActivity(), "Loading", Toast.LENGTH_SHORT).show();
-                            selectedData.add(model.getDataManager().loadFile(vis.header));
-                            model.getDataManager().deleteFile(vis.header);
+                            Folder folder = model.getDataManager().loadFile(vis.header);
+                            folder.header = folder.header.substring(0, folder.header.lastIndexOf('.'));
+                            selectedData.add(folder);
+                            if(model.mode == CUT_MODE) {
+                                model.getDataManager().deleteFile(vis.header);
+                            }
                         } else {
                             selectedData.add(vis);
+                            if(model.mode == CUT_MODE){
+                                model.getVisibleFolder().visuals.remove(vis);
+                                model.onUpdate();
+                            }
                         }
                         model.setBuffer(selectedData);
-                        model.mode = FILE_MAKER_MODE;
-                        update(model.getVisibleFolder());
-                        break;
-                    case COPY_MODE:
-                        selectedData.clear();
-                        vis = model.getVisibleElement(i);
-                        if (model.isVisibleFolderRoot()) {
-                            Toast.makeText(model.getActivity(), "Loading", Toast.LENGTH_SHORT).show();
-                            selectedData.add(model.getDataManager().loadFile(vis.header));
-                        } else {
-                            selectedData.add(vis);
+                        if(model.mode == CUT_MODE){
+                            update(model.getVisibleFolder());
                         }
-                        model.setBuffer(selectedData);
                         model.mode = FILE_MAKER_MODE;
                         break;
                     case FILE_MAKER_MODE:
                         if (model.isVisibleFolderRoot()) {
                             Toast.makeText(model.getActivity(), "Loading", Toast.LENGTH_SHORT).show();
-                            Folder f = model.getDataManager().loadFile(model.getVisibleElement(i).header);
+                            Folder f = (Folder)model.getVisibleElement(i);
+                            model.getDataManager().upload(f);
                             model.setVisibleFile(f);
-                            f.content = model.getRootFolder().visuals.remove(i).content;
-                            model.getRootFolder().add(f);
                             update(f);
                         } else {
                             if (model.isVisualFolder(model.getVisibleElement(i))) {

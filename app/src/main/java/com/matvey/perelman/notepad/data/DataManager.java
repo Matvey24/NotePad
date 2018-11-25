@@ -15,15 +15,13 @@ public class DataManager {
     private final File dir;
     private Model model;
     private File openedFile;
-    public DataManager(Model model, final String appFileType) {
+    public DataManager(Model model,final String appFileType) {
         this.model = model;
         dir = model.getActivity().getExternalFilesDir(null);
         filter = new FileFilter() {
             @Override
             public boolean accept(File pathname) {
-                return pathname.getName()
-                        .substring(pathname.getName().lastIndexOf('.'))
-                        .equals(appFileType);
+                return pathname.getName().endsWith(appFileType);
             }
         };
         gson = new Gson();
@@ -45,7 +43,9 @@ public class DataManager {
         if (openedFile != null && model.getVisibleFile() != null)
             try {
                 FileOutputStream fos = new FileOutputStream(openedFile);
-                String json = gson.toJson(model.getVisibleFile().toItem());
+                Item item = model.getVisibleFile().toItem();
+                item.header = null;
+                String json = gson.toJson(item);
                 fos.write(json.getBytes());
                 fos.close();
             } catch (Exception e) {
@@ -58,8 +58,8 @@ public class DataManager {
         if(!(folder.visuals.size() == 0 && openedFile.exists())) {
             model.setVisibleFile(folder);
             saveFile();
+            updateFileNames();
         }
-        updateFileNames();
     }
 
     public void deleteFile(String fileName) {
@@ -71,7 +71,7 @@ public class DataManager {
         updateFileNames();
     }
 
-    public Folder loadFile(String fileName) {
+    private Folder load(String fileName) {
         openedFile = new File(dir, fileName);
         Folder f = null;
         try {
@@ -81,7 +81,10 @@ public class DataManager {
                 throw new Exception("too long file");
             }
             String json = new String(bytes);
-            f = Folder.fromItem(gson.fromJson(json, Item.class));
+            Item item = gson.fromJson(json, Item.class);
+            item.header = fileName;
+            item.content = openedFile.length() + " bytes";
+            f = Folder.fromItem(item);
             fis.close();
         } catch (Exception e) {
             Toast.makeText(model.getActivity(), "Error with loading " + e.toString(), Toast.LENGTH_LONG).show();
@@ -91,5 +94,20 @@ public class DataManager {
             f.header = fileName;
         }
         return f;
+    }
+    private void loadToFolder(Folder folder, String fileName){
+        Folder f = load(fileName);
+        folder.visuals.clear();
+        for (Visual v : f.visuals){
+            folder.add(v);
+        }
+    }
+    public Folder loadFile(String fileName){
+        Folder f = load(fileName);
+        f.parent = model.getRootFolder();
+        return f;
+    }
+    public void upload(Folder folder){
+        loadToFolder(folder, folder.header);
     }
 }
