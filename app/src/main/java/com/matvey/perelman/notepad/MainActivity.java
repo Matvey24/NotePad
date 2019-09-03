@@ -22,6 +22,7 @@ import com.matvey.perelman.notepad.data.Visual;
 import static com.matvey.perelman.notepad.Model.COPY_MODE;
 import static com.matvey.perelman.notepad.Model.CUT_MODE;
 import static com.matvey.perelman.notepad.Model.FILE_MAKER_MODE;
+import static com.matvey.perelman.notepad.Model.RENAME_MODE;
 
 public class MainActivity extends AppCompatActivity {
     private MyRecyclerViewAdapter adapter;
@@ -48,17 +49,10 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View view) {
-                switch (model.mode) {
-                    case CUT_MODE:
-                    case COPY_MODE:
-                        model.mode = FILE_MAKER_MODE;
-                    case FILE_MAKER_MODE:
-                        showCreaterDialog();
-                }
+                create();
             }
         });
     }
-
     @Override
     protected void onPause() {
         super.onPause();
@@ -83,13 +77,22 @@ public class MainActivity extends AppCompatActivity {
         switch (id) {
             case R.id.cut_itm:
                 model.mode = CUT_MODE;
-                break;
+                return true;
             case R.id.copy_itm:
                 model.mode = COPY_MODE;
-                break;
+                return true;
             case R.id.paste_itm:
                 paste();
-                break;
+                return true;
+            case R.id.create_itm:
+                create();
+                return true;
+            case R.id.rename_itm:
+                model.mode = RENAME_MODE;
+                return true;
+            case R.id.back_itm:
+                onBackPressed();
+                return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -99,6 +102,7 @@ public class MainActivity extends AppCompatActivity {
         switch (model.mode) {
             case CUT_MODE:
             case COPY_MODE:
+            case RENAME_MODE:
                 model.mode = FILE_MAKER_MODE;
                 break;
             case FILE_MAKER_MODE:
@@ -136,13 +140,20 @@ public class MainActivity extends AppCompatActivity {
         }
         adapter.update(model.getVisibleFolder());
     }
-
-    public void showCreaterDialog() {
-        final Dialog dialog = new Dialog(MainActivity.this);
-        dialog.setContentView(R.layout.file_maker_view);
+    private void create(){
+        switch (model.mode) {
+            case CUT_MODE:
+            case COPY_MODE:
+            case RENAME_MODE:
+                model.mode = FILE_MAKER_MODE;
+            case FILE_MAKER_MODE:
+                showCreatorDialog();
+        }
+    }
+    public void showCreatorDialog() {
+        final Dialog dialog = getEditTextDialog(R.layout.file_maker_view, getString(R.string.file_maker_dialog));
         final EditText et = dialog.findViewById(R.id.name_et);
         Button btn = dialog.findViewById(R.id.create_btn);
-        dialog.setTitle(R.string.file_maker_dialog);
         if (model.isVisibleFolderRoot()) {
             Switch sw = dialog.findViewById(R.id.is_folder);
             sw.setEnabled(false);
@@ -178,11 +189,8 @@ public class MainActivity extends AppCompatActivity {
         });
         dialog.show();
     }
-
-    public void showEditerDialog(final MyRecyclerViewAdapter.MyViewHolder holder, final Visual visual) {
-        final Dialog dialog = new Dialog(this);
-        dialog.setContentView(R.layout.note_editer_view);
-        dialog.setTitle(holder.getHeader());
+    public void showEditorDialog(final MyRecyclerViewAdapter.MyViewHolder holder, final Visual visual) {
+        final Dialog dialog = getEditTextDialog(R.layout.note_editer_view, visual.header);
         final EditText et = dialog.findViewById(R.id.content1);
         et.setText(visual.content);
         FloatingActionButton btn = dialog.findViewById(R.id.save_btn);
@@ -200,7 +208,42 @@ public class MainActivity extends AppCompatActivity {
         });
         dialog.show();
     }
-
+    public void showRenameDialog(final MyRecyclerViewAdapter.MyViewHolder holder, final Visual visual){
+        final Dialog dialog = getEditTextDialog(R.layout.renamer_view, getString(R.string.action_rename));
+        final EditText et = dialog.findViewById(R.id.content1);
+        if(model.isVisibleFolderRoot()){
+            et.setText(visual.header.substring(0, visual.header.lastIndexOf('.')));
+        }else{
+            et.setText(visual.header);
+        }
+        model.mode = FILE_MAKER_MODE;
+        FloatingActionButton btn = dialog.findViewById(R.id.save_btn);
+        btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String text = et.getText().toString();
+                if (!visual.header.equals(text)) {
+                    if(model.isVisibleFolderRoot()){
+                        String name = text + getString(R.string.app_file_type);
+                        dataManager.renameFile(name, visual.header);
+                        holder.setHeader(name);
+                    }else {
+                        holder.setHeader(text);
+                        visual.header = text;
+                        model.onUpdate();
+                    }
+                }
+                dialog.hide();
+            }
+        });
+        dialog.show();
+    }
+    private Dialog getEditTextDialog(int layout, String title){
+        Dialog dialog = new Dialog(this);
+        dialog.setContentView(layout);
+        dialog.setTitle(title);
+        return dialog;
+    }
     public DataManager getDataManager() {
         return dataManager;
     }

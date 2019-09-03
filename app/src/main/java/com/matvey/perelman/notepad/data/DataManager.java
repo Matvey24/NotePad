@@ -66,11 +66,18 @@ public class DataManager {
         File f = new File(dir, fileName);
         openedFile = null;
         if(!f.delete()){
-            Toast.makeText(model.getActivity(), "Error deleting", Toast.LENGTH_SHORT).show();
+            Toast.makeText(model.getActivity(), "Error deleting", Toast.LENGTH_LONG).show();
         }
         updateFileNames();
     }
-
+    public void renameFile(String name, String oldName){
+        File f = new File(dir, oldName);
+        File nf = new File(dir, name);
+        if(!f.renameTo(nf)){
+            Toast.makeText(model.getActivity(), "Error renaming", Toast.LENGTH_LONG).show();
+        }
+        updateFileNames();
+    }
     private Folder load(String fileName) {
         openedFile = new File(dir, fileName);
         Folder f = null;
@@ -80,12 +87,12 @@ public class DataManager {
             if(fis.read(bytes) != bytes.length){
                 throw new Exception("too long file");
             }
+            fis.close();
             String json = new String(bytes);
             Item item = gson.fromJson(json, Item.class);
             item.header = fileName;
             item.content = openedFile.length() + " bytes";
             f = Folder.fromItem(item);
-            fis.close();
         } catch (Exception e) {
             Toast.makeText(model.getActivity(), "Error with loading " + e.toString(), Toast.LENGTH_LONG).show();
         }

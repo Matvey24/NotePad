@@ -18,12 +18,14 @@ public class Model {
     static final int FILE_MAKER_MODE = 0;
     static final int CUT_MODE = 1;
     static final int COPY_MODE = 2;
+    static final int RENAME_MODE = 3;
     private static boolean saved;
     Model(MainActivity activity){
         this.activity = activity;
         rootFolder = new Folder();
         visibleFolder = rootFolder;
         mode = FILE_MAKER_MODE;
+        saved = true;
     }
     ArrayList<Visual> getBuffer() {
         return buffer;

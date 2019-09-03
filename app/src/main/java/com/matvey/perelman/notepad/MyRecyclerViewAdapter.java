@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import static com.matvey.perelman.notepad.Model.COPY_MODE;
 import static com.matvey.perelman.notepad.Model.CUT_MODE;
 import static com.matvey.perelman.notepad.Model.FILE_MAKER_MODE;
+import static com.matvey.perelman.notepad.Model.RENAME_MODE;
 
 public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAdapter.MyViewHolder> {
     private Model model;
@@ -77,6 +78,9 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
                         }
                         model.mode = FILE_MAKER_MODE;
                         break;
+                    case RENAME_MODE:
+                        model.getActivity().showRenameDialog(myViewHolder, model.getVisibleElement(i));
+                        break;
                     case FILE_MAKER_MODE:
                         if (model.isVisibleFolderRoot()) {
                             Toast.makeText(model.getActivity(), "Loading", Toast.LENGTH_SHORT).show();
@@ -88,7 +92,7 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
                             if (model.isVisualFolder(model.getVisibleElement(i))) {
                                 update((Folder) model.getVisibleElement(i));
                             } else {
-                                model.getActivity().showEditerDialog(myViewHolder,model.getVisibleElement(i));
+                                model.getActivity().showEditorDialog(myViewHolder,model.getVisibleElement(i));
                             }
                         }
                         break;
@@ -99,7 +103,7 @@ public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAd
 
     @Override
     public int getItemCount() {
-        return model.getVisibleFolder().visuals.size() < 1 ? 1 : model.getVisibleFolder().visuals.size();
+        return Math.max(1, model.getVisibleFolder().visuals.size());
     }
 
     void update(Folder folder) {

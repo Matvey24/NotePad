@@ -1,13 +1,14 @@
 <resources>
     <string name="app_name">NotePad</string>
-    <string name="action_settings">Settings</string>
+    <string name="action_back">Back</string>
 
     <string name="app_file_type">.note</string>
     <string name="action_cut">Cut</string>
     <string name="action_copy">Copy</string>
     <string name="action_paste">Paste</string>
+    <string name="action_create">Create</string>
+    <string name="action_rename">Rename</string>
     <string name="edit_text_hint">Some name</string>
     <string name="file_maker_switch_text">Is Folder</string>
-    <string name="file_maker_btn_text">Create</string>
     <string name="file_maker_dialog">Make file</string>
 </resources>
